@@ -8,19 +8,21 @@ self.addEventListener("activate", event => {
   event.waitUntil(self.clients.claim());
 });
 
+// Obrigatório para o Chrome considerar o app instalável como PWA
+self.addEventListener("fetch", event => {
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener("push", event => {
   if (!event.data) return;
 
   let data;
   try {
     data = event.data.json();
-  } catch {
+  } catch (_e) {
     data = { title: "Ticketz", body: event.data.text(), tag: "default", url: "/" };
   }
 
-  // Sempre mostra a notificação nativa — confiável em background e foreground.
-  // O app suprime a notificação do Socket.io quando a janela está visível,
-  // evitando duplicatas sem depender do frágil visibilityState aqui.
   const handle = self.registration.showNotification(data.title, {
     body: data.body,
     icon: data.icon || "/android-chrome-192x192.png",
