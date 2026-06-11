@@ -472,6 +472,20 @@ const socketManager = {
       this.onReady(() => {
         this.socketReady = true;
       });
+
+      if (!this._visibilityHandlerAdded) {
+        this._visibilityHandlerAdded = true;
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState !== "visible") return;
+          if (!this.currentSocket) return;
+          if (!this.currentSocket.connected) {
+            console.debug("[Socket] Page visible again - forcing reconnect");
+            this.reconnectWithFreshToken();
+          } else {
+            this.triggerWsRefreshRequired();
+          }
+        });
+      }
     }
 
     return new ManagedSocket(this);

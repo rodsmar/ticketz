@@ -1,7 +1,5 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = "ticketz-v1";
-
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
@@ -20,19 +18,26 @@ self.addEventListener("push", event => {
     data = { title: "Ticketz", body: event.data.text(), tag: "default", url: "/" };
   }
 
-  const showNotification = self.clients
+  const handle = self.clients
     .matchAll({ type: "window", includeUncontrolled: true })
     .then(clients => {
-      // Se há uma janela visível e focada, manda mensagem para ela tratar
-      const focusedClient = clients.find(
-        c => c.visibilityState === "visible" && c.focused
+      // Se há janela visível em foreground, ela já recebe via Socket.io
+      // Ainda assim mostramos a notificação para garantir badge e som no iOS
+      const hasVisibleClient = clients.some(
+        c => c.visibilityState === "visible"
       );
-      if (focusedClient) {
-        focusedClient.postMessage({ type: "push-received", data });
+
+      if (hasVisibleClient) {
+        // Avisa o app para atualizar contadores sem mostrar notificação duplicada
+        clients.forEach(c => {
+          if (c.visibilityState === "visible") {
+            c.postMessage({ type: "push-received", data });
+          }
+        });
         return;
       }
 
-      // App em background ou fechado: mostra notificação nativa
+      // App em background ou fechado: notificação nativa
       return self.registration.showNotification(data.title, {
         body: data.body,
         icon: data.icon || "/android-chrome-192x192.png",
@@ -45,7 +50,7 @@ self.addEventListener("push", event => {
       });
     });
 
-  event.waitUntil(showNotification);
+  event.waitUntil(handle);
 });
 
 self.addEventListener("notificationclick", event => {
@@ -57,22 +62,15 @@ self.addEventListener("notificationclick", event => {
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(clients => {
-        // Tenta focar janela existente e navegar
-        for (const client of clients) {
-          if ("focus" in client) {
-            client.focus();
-            if ("navigate" in client) {
-              client.navigate(targetUrl);
-            } else {
-              client.postMessage({ type: "navigate", url: targetUrl });
-            }
-            return;
-          }
+        // Foca janela existente e navega
+        if (clients.length > 0) {
+          const client = clients[0];
+          client.focus();
+          client.postMessage({ type: "navigate", url: targetUrl });
+          return;
         }
         // Abre nova janela
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(targetUrl);
-        }
+        return self.clients.openWindow(targetUrl);
       })
   );
 });
