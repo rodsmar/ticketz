@@ -27,14 +27,7 @@ const usePushNotifications = () => {
   const history = useHistory();
 
   const subscribe = useCallback(async () => {
-    if (!("serviceWorker" in navigator)) {
-      console.warn("[Push] Service Worker not supported");
-      return;
-    }
-    if (!("PushManager" in window)) {
-      console.warn("[Push] PushManager not supported");
-      return;
-    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
     try {
       const permission = await Notification.requestPermission();
@@ -61,7 +54,7 @@ const usePushNotifications = () => {
         });
         console.info("[Push] New subscription created");
       } else {
-        console.info("[Push] Reusing existing subscription");
+        console.info("[Push] Refreshing existing subscription");
       }
 
       subscriptionRef.current = subscription;
@@ -69,35 +62,35 @@ const usePushNotifications = () => {
       const p256dh = arrayBufferToBase64(subscription.getKey("p256dh"));
       const auth = arrayBufferToBase64(subscription.getKey("auth"));
 
+      // Sempre envia ao backend para manter atualizado após reinicializações
       await api.post("/push/subscribe", {
         endpoint: subscription.endpoint,
         keys: { p256dh, auth }
       });
 
-      console.info("[Push] Subscription saved to backend");
+      console.info("[Push] Subscription synced to backend");
     } catch (err) {
       console.warn("[Push] Subscribe failed:", err);
     }
   }, []);
 
-  const unsubscribe = useCallback(async () => {
-    if (!subscriptionRef.current) return;
-    try {
-      await api.post("/push/unsubscribe", {
-        endpoint: subscriptionRef.current.endpoint
-      });
-      await subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
-    } catch (err) {
-      console.warn("[Push] Unsubscribe failed:", err);
-    }
-  }, []);
-
+  // Subscrição inicial
   useEffect(() => {
     subscribe();
   }, [subscribe]);
 
-  // Escuta mensagens do service worker para navegação
+  // Re-subscreve quando o app volta ao foreground para recuperar após bateria/kill
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        subscribe();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [subscribe]);
+
+  // Navegação via clique na notificação (mensagem do SW)
   useEffect(() => {
     if (!navigator.serviceWorker) return;
 
@@ -111,7 +104,7 @@ const usePushNotifications = () => {
     return () => navigator.serviceWorker.removeEventListener("message", handler);
   }, [history]);
 
-  return { subscribe, unsubscribe };
+  return { subscribe };
 };
 
 export default usePushNotifications;

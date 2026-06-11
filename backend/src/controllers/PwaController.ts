@@ -86,7 +86,9 @@ export const subscribePush = async (
     where: { userId, companyId, endpoint }
   });
 
-  if (!existing) {
+  if (existing) {
+    await existing.update({ p256dh: keys.p256dh, auth: keys.auth });
+  } else {
     await PushSubscription.create({
       userId,
       companyId,
