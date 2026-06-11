@@ -5,11 +5,17 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/android-chrome-192x192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="%PUBLIC_URL%/android-chrome-192x192.png" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <meta name="theme-color" content="#000000" />
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ticketz" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="viewport"
       content="minimum-scale=1, initial-scale=1, width=device-width"
@@ -390,5 +396,19 @@
       };
     </script>
     <script src="/notificame-gateway.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/sw.js", { scope: "/" })
+            .then(function (reg) {
+              console.log("[SW] Registered:", reg.scope);
+            })
+            .catch(function (err) {
+              console.warn("[SW] Registration failed:", err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

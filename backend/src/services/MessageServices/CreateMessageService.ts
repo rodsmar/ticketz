@@ -6,6 +6,7 @@ import OldMessage from "../../models/OldMessage";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
+import { sendPushNotification } from "../PushNotificationService";
 
 interface MessageData {
   id: string;
@@ -114,6 +115,21 @@ const CreateMessageService = async ({
 
   if (!skipWebsocket) {
     websocketCreateMessage(message);
+
+    if (!message.fromMe && !message.read) {
+      sendPushNotification(
+        companyId,
+        message.ticket.userId ?? null,
+        message.ticket.queueId ?? null,
+        {
+          title: message.ticket.contact?.name || "Nova mensagem",
+          body: message.body.startsWith('{"ticketzvCard"') ? "🪪 Contato" : message.body,
+          icon: message.ticket.contact?.profilePicUrl || "/android-chrome-192x192.png",
+          tag: String(message.ticketId),
+          url: `/tickets/${message.ticket.uuid}`
+        }
+      );
+    }
   }
 
   io.to(`company-${companyId}-mainchannel`).emit(

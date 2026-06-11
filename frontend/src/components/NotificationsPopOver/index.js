@@ -22,6 +22,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
 import Favicon from "react-favicon";
 import useSettings from "../../hooks/useSettings";
+import usePushNotifications from "../../hooks/usePushNotifications";
 
 const defaultLogoFavicon = "/vector/favicon.svg";
 
@@ -65,6 +66,7 @@ const NotificationsPopOver = props => {
   const historyRef = useRef(history);
 
   const socketManager = useContext(SocketContext);
+  usePushNotifications();
 
   function clearTicket(ticketId) {
     setNotifications(prevState => {
