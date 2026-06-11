@@ -74,7 +74,8 @@ export const subscribePush = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { id: userId, companyId } = req.user;
+  const userId = Number(req.user.id);
+  const { companyId } = req.user;
   const { endpoint, keys } = req.body;
 
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
